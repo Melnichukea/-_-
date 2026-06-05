@@ -1,0 +1,273 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+using namespace std;
+
+class SparePart {
+private:
+    int id;
+    string name;
+    string manufacturer;
+    string compatibleModels;
+    int quantity;
+    int minStockLevel;
+    double purchasePrice;
+    
+public:
+    SparePart(int _id, string _name, string _manufacturer, 
+              string _compatible, int _minLevel, double _price)
+        : id(_id), name(_name), manufacturer(_manufacturer),
+          compatibleModels(_compatible), quantity(0), 
+          minStockLevel(_minLevel), purchasePrice(_price) {}
+    
+    int getId() const { return id; }
+    string getName() const { return name; }
+    int getQuantity() const { return quantity; }
+    int getMinStockLevel() const { return minStockLevel; }
+    double getPrice() const { return purchasePrice; }
+    
+    void addStock(int amount) {
+        if (amount > 0) {
+            quantity += amount;
+            cout << "Добавлено " << amount << " шт. " << name 
+                 << ". Теперь на складе: " << quantity << endl;
+        }
+    }
+    
+    bool reduceStock(int amount) {
+        if (amount <= 0) return false;
+        if (quantity - amount < 0) {
+            cout << "Ошибка: недостаточно " << name 
+                 << " на складе (есть " << quantity << ")" << endl;
+            return false;
+        }
+        quantity -= amount;
+        cout << "Списано " << amount << " шт. " << name 
+             << ". Остаток: " << quantity << endl;
+        
+        if (quantity <= minStockLevel) {
+            cout << "ВНИМАНИЕ! " << name << " достиг минимума. "
+                 << "Необходимо заказать!" << endl;
+        }
+        return true;
+    }
+    
+    bool isCompatibleWith(const string& deviceModel) const {
+        return compatibleModels.find(deviceModel) != string::npos;
+    }
+    
+    void display() const {
+        cout << "ID: " << id << " | " << name << " | " << manufacturer
+             << " | Остаток: " << quantity << " | Мин.порог: " << minStockLevel
+             << " | Цена: " << purchasePrice << " руб." << endl;
+    }
+};
+
+class Supplier {
+private:
+    int id;
+    string name;
+    string contactPerson;
+    string phone;
+    double rating;
+    int averageDeliveryDays;
+    
+public:
+    Supplier(int _id, string _name, string _contact, 
+             string _phone, double _rating, int _deliveryDays)
+        : id(_id), name(_name), contactPerson(_contact),
+          phone(_phone), rating(_rating), averageDeliveryDays(_deliveryDays) {}
+    
+    int getId() const { return id; }
+    string getName() const { return name; }
+    double getRating() const { return rating; }
+    int getDeliveryDays() const { return averageDeliveryDays; }
+    
+    void display() const {
+        cout << "ID: " << id << " | " << name << " | Контакт: " << contactPerson
+             << " | Рейтинг: " << rating << " | Доставка: " 
+             << averageDeliveryDays << " дн." << endl;
+    }
+};
+
+struct OrderItem {
+    int partId;
+    string partName;
+    int quantity;
+    double price;
+    
+    OrderItem(int pId, string pName, int qty, double pr)
+        : partId(pId), partName(pName), quantity(qty), price(pr) {}
+};
+
+class PurchaseOrder {
+private:
+    int id;
+    int supplierId;
+    string supplierName;
+    vector<OrderItem> items;
+    int status;
+    time_t orderDate;
+    time_t expectedDeliveryDate;
+    
+public:
+    PurchaseOrder(int _id, int _suppId, string _suppName)
+        : id(_id), supplierId(_suppId), supplierName(_suppName), status(0) {
+        time(&orderDate);
+        expectedDeliveryDate = orderDate + 7*24*3600;
+    }
+    
+    void addItem(int partId, string partName, int qty, double price) {
+        items.push_back(OrderItem(partId, partName, qty, price));
+        cout << "Добавлено в заказ: " << partName << " x" << qty << endl;
+    }
+    
+    void setStatus(int newStatus) {
+        status = newStatus;
+        cout << "Статус заказа #" << id << " изменен на: ";
+        switch(status) {
+            case 0: cout << "Черновик"; break;
+            case 1: cout << "Отправлен"; break;
+            case 2: cout << "Подтвержден"; break;
+            case 3: cout << "Отгружен"; break;
+            case 4: cout << "Получен"; break;
+            case 5: cout << "Отменен"; break;
+            default: cout << "Неизвестный статус";
+        }
+        cout << endl;
+    }
+    
+    double calculateTotal() const {
+        double total = 0;
+        for (const auto& item : items) {
+            total += item.quantity * item.price;
+        }
+        return total;
+    }
+    
+    void display() const {
+        cout << "\nЗАКАЗ #" << id << endl;
+        cout << "Поставщик: " << supplierName << endl;
+        cout << "Статус: ";
+        switch(status) {
+            case 0: cout << "Черновик"; break;
+            case 1: cout << "Отправлен"; break;
+            case 2: cout << "Подтвержден"; break;
+            case 3: cout << "Отгружен"; break;
+            case 4: cout << "Получен"; break;
+            case 5: cout << "Отменен"; break;
+        }
+        cout << "\nПозиции:" << endl;
+        for (const auto& item : items) {
+            cout << "  - " << item.partName << " x" << item.quantity 
+                 << " = " << item.quantity * item.price << " руб." << endl;
+        }
+        cout << "ИТОГО: " << calculateTotal() << " руб." << endl;
+    }
+};
+
+class Warehouse {
+private:
+    vector<SparePart> parts;
+    
+public:
+    void addPart(const SparePart& part) {
+        parts.push_back(part);
+    }
+    
+    SparePart* findPartById(int id) {
+        for (auto& part : parts) {
+            if (part.getId() == id) return &part;
+        }
+        return nullptr;
+    }
+    
+    SparePart* findPartByName(const string& name) {
+        for (auto& part : parts) {
+            if (part.getName() == name) return &part;
+        }
+        return nullptr;
+    }
+    
+    void displayAllParts() const {
+        cout << "\nСКЛАД (текущие остатки)" << endl;
+        for (const auto& part : parts) {
+            part.display();
+        }
+    }
+    
+    void checkAndAutoOrder() {
+        cout << "\nПРОВЕРКА МИНИМАЛЬНЫХ ОСТАТКОВ" << endl;
+        bool needOrder = false;
+        for (auto& part : parts) {
+            if (part.getQuantity() <= part.getMinStockLevel()) {
+                cout << "Требуется заказ: " << part.getName() 
+                     << " (остаток " << part.getQuantity() 
+                     << " < порог " << part.getMinStockLevel() << ")" << endl;
+                needOrder = true;
+            }
+        }
+        if (!needOrder) {
+            cout << "Все запчасти в норме." << endl;
+        }
+    }
+};
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+    cout << "СИСТЕМА УЧЕТА ЗАПЧАСТЕЙ МАСТЕРСКОЙ" << endl << endl;
+    
+    Warehouse warehouse;
+    
+    warehouse.addPart(SparePart(1, "SSD 256GB", "Samsung", "Dell XPS, Lenovo", 5, 3500));
+    warehouse.addPart(SparePart(2, "RAM 8GB DDR4", "Kingston", "HP, Asus, Acer", 8, 2200));
+    warehouse.addPart(SparePart(3, "Блок питания 500W", "Corsair", "Intel Core, AMD Ryzen", 3, 4500));
+    warehouse.addPart(SparePart(4, "Термопаста", "Arctic", "Все модели", 10, 350));
+    
+    warehouse.findPartById(1)->addStock(15);
+    warehouse.findPartById(2)->addStock(20);
+    warehouse.findPartById(3)->addStock(5);
+    warehouse.findPartById(4)->addStock(25);
+    
+    warehouse.displayAllParts();
+    
+    cout << "\nПОСТАВЩИКИ" << endl;
+    Supplier supplier1(101, "ООО Комплект", "Иванов И.", "+7(495)123-45-67", 4.8, 3);
+    Supplier supplier2(102, "ИП Петров", "Петров А.", "+7(499)987-65-43", 4.2, 5);
+    supplier1.display();
+    supplier2.display();
+    
+    cout << "\nФОРМИРОВАНИЕ ЗАКАЗА ПОСТАВЩИКУ" << endl;
+    PurchaseOrder order(5001, 101, "ООО Комплект");
+    order.addItem(1, "SSD 256GB", 10, 3200);
+    order.addItem(2, "RAM 8GB DDR4", 15, 2000);
+    order.setStatus(1);
+    order.display();
+    
+    cout << "\nИМИТАЦИЯ РАБОТЫ МАСТЕРСКОЙ" << endl;
+    cout << "\nРемонт 1. Замена SSD в ноутбуке Dell XPS..." << endl;
+    warehouse.findPartById(1)->reduceStock(1);
+    
+    cout << "\nРемонт 2. Замена термопасты и ОЗУ..." << endl;
+    warehouse.findPartById(2)->reduceStock(2);
+    warehouse.findPartById(4)->reduceStock(1);
+    
+    cout << "\nРемонт 3. Замена блока питания..." << endl;
+    warehouse.findPartById(3)->reduceStock(1);
+    
+    warehouse.displayAllParts();
+    
+    warehouse.checkAndAutoOrder();
+    
+    cout << "\nПОСТУПЛЕНИЕ НОВОЙ ПОСТАВКИ" << endl;
+    cout << "Пришла поставка от ООО Комплект:" << endl;
+    warehouse.findPartById(1)->addStock(10);
+    warehouse.findPartById(2)->addStock(15);
+    
+    warehouse.displayAllParts();
+    
+    cout << endl << "РАБОТА ПРОГРАММЫ ЗАВЕРШЕНА" << endl;
+    
+    return 0;
+}
